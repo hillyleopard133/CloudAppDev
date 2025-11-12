@@ -15,7 +15,7 @@ export const movies : Movie[] = [
   }
 ]
 
-export const Actors: Actor[] = [
+export const actors: Actor[] = [
   {
     actorId: 101,
     name: "Amber White",
@@ -63,7 +63,7 @@ export const movieCasts: MovieCast[] = [
  },
 ];
 
-export const Awards: Award[] = [
+export const awards: Award[] = [
   {
     awardId: 101,
     body: "Bafta",
