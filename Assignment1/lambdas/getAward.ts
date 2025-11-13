@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
+import { logRequest } from "./utils";
 
 const ajv = new Ajv();
 const isValidQueryParams = ajv.compile(
@@ -18,7 +19,7 @@ const ddbDocClient = createDocumentClient();
 
 export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
   try {
-
+    logRequest(event);
     console.log("[EVENT]", JSON.stringify(event));
 
     const queryParams = event.queryStringParameters;

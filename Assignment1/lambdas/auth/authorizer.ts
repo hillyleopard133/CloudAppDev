@@ -22,6 +22,7 @@ export const handler: APIGatewayRequestAuthorizerHandler = async (event) => {
   return {
     principalId: verifiedJwt ? verifiedJwt.sub!.toString() : "",
     policyDocument: createPolicy(event, verifiedJwt ? "Allow" : "Deny"),
+    context: verifiedJwt ? {username: verifiedJwt.username} : {}
   };
 };
 

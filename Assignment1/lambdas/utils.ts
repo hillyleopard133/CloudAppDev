@@ -13,7 +13,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 import jwkToPem, { JWK }  from "jwk-to-pem";
 
 export type CookieMap = { [key: string]: string } | undefined;
-export type JwtToken = { sub: string; email: string } | null;
+export type JwtToken = { sub: string; email: string; username: string; } | null;
 export type Jwk = {
   keys: {
     alg: string;
@@ -74,7 +74,14 @@ if (!jwk) return null;
 const pem = jwkToPem(jwk as JWK); // cast back to JWK for the helper
 
     const decoded = jwt.verify(token, pem, { algorithms: ["RS256"] }) as JwtPayload;
-    return decoded ? { sub: decoded.sub!, email: decoded.email as string } : null;
+
+    const email = decoded.email as string;
+    const username =
+      (decoded["cognito:username"] as string) ||
+      (decoded["username"] as string) ||
+      decoded.sub!;
+
+    return decoded ? { sub: decoded.sub!, email, username } : null;
 
     //return jwt.verify(token, pem, { algorithms: ["RS256"] });
   } catch (err) {
@@ -98,3 +105,13 @@ export const createPolicy = (
     ],
   };
 };
+
+export function logRequest(event: any) {
+  const auth = event.requestContext?.authorizer || {};
+  const username = auth.username || "anonymous";
+
+  const path = event.rawPath || event.requestContext?.path || "";
+  const query = event.rawQueryString || event.requestContext?.queryString || "";
+
+  console.log(`${username} ${query ? `${path}?${query}` : path}`);
+}
