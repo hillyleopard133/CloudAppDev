@@ -11,7 +11,13 @@ import { movies, movieCasts, actors, awards} from "../seed/movies";
 import { Construct } from 'constructs';
 import { UserPool } from "aws-cdk-lib/aws-cognito";
 import { AuthApi } from './constructs/auth-api'
-import {AppApi } from './constructs/app-api'
+import * as node from "aws-cdk-lib/aws-lambda-nodejs";
+
+type AppApiProps = {
+  userPoolId: string;
+  userPoolClientId: string;
+};
+
 
 export class Assignment1Stack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -37,11 +43,33 @@ export class Assignment1Stack extends cdk.Stack {
       userPoolClientId: userPoolClientId,
     });
 
-    new AppApi(this, 'AppApi', {
-      userPoolId: userPoolId,
-      userPoolClientId: userPoolClientId,
-    } );
+    const appCommonFnProps = {
+      architecture: lambda.Architecture.ARM_64,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      handler: "handler",
+      environment: {
+        USER_POOL_ID: userPoolId,
+        CLIENT_ID: userPoolClientId,
+        REGION: cdk.Aws.REGION,
+      },
+    };
 
+    const authorizerFn = new node.NodejsFunction(this, "AuthorizerFn", {
+      ...appCommonFnProps,
+      entry: "./lambdas/auth/authorizer.ts",
+    });
+
+    const requestAuthorizer = new apig.RequestAuthorizer(
+      this,
+      "RequestAuthorizer",
+      {
+        identitySources: [apig.IdentitySource.header("cookie")],
+        handler: authorizerFn,
+        resultsCacheTtl: cdk.Duration.minutes(0),
+      }
+    );
   
 
     //DATABASE  
@@ -210,42 +238,70 @@ export class Assignment1Stack extends cdk.Stack {
     const moviesEndpoint = api.root.addResource("movies");
     moviesEndpoint.addMethod(
       "GET",
-      new apig.LambdaIntegration(getAllMoviesFn, { proxy: true })
+      new apig.LambdaIntegration(getAllMoviesFn, { proxy: true }),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
 
     const movieEndpoint = moviesEndpoint.addResource("{movieId}");
     movieEndpoint.addMethod(
       "GET",
-      new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+      new apig.LambdaIntegration(getMovieByIdFn, { proxy: true }),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
 
     const movieCastEndpoint = movieEndpoint.addResource("actors");
     movieCastEndpoint.addMethod(
       "GET",
-      new apig.LambdaIntegration(getMovieCastMembersFn, { proxy: true })
+      new apig.LambdaIntegration(getMovieCastMembersFn, { proxy: true }),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
 
     const movieActorEndpoint = movieCastEndpoint.addResource("{actorId}");
     movieActorEndpoint.addMethod(
       "GET",
-      new apig.LambdaIntegration(getMovieActorByIdFn, { proxy: true })
+      new apig.LambdaIntegration(getMovieActorByIdFn, { proxy: true }),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
 
     const awardsEndpoint = api.root.addResource("awards");
     awardsEndpoint.addMethod(
       "GET",
-      new apig.LambdaIntegration(getAwardFn, { proxy: true })
+      new apig.LambdaIntegration(getAwardFn, { proxy: true }),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
 
 
     moviesEndpoint.addMethod(
       "POST",
-      new apig.LambdaIntegration(newMovieFn, { proxy: true })
+      new apig.LambdaIntegration(newMovieFn, { proxy: true }), 
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
 
     movieEndpoint.addMethod(
       "DELETE",
-      new apig.LambdaIntegration(deleteMovieFn, { proxy: true })
+      new apig.LambdaIntegration(deleteMovieFn, { proxy: true }),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: apig.AuthorizationType.CUSTOM,
+      }
     );
   }
 
