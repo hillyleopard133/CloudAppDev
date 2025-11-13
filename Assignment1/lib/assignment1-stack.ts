@@ -123,6 +123,19 @@ export class Assignment1Stack extends cdk.Stack {
       },
     });
 
+    //DELETE
+        const deleteMovieFn = new lambdanode.NodejsFunction(this, "DeleteMovieFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/deleteMovie.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: movieDatabaseTable.tableName,
+        REGION: cdk.Aws.REGION,
+      },
+    });
+
     //Permissions
     movieDatabaseTable.grantReadData(getMovieByIdFn)
     movieDatabaseTable.grantReadData(getAllMoviesFn)
@@ -130,6 +143,7 @@ export class Assignment1Stack extends cdk.Stack {
     movieDatabaseTable.grantReadData(getMovieActorByIdFn)
 
     movieDatabaseTable.grantReadWriteData(newMovieFn)
+    movieDatabaseTable.grantReadWriteData(deleteMovieFn)
 
     //API
     const api = new apig.RestApi(this, "RestAPI", {
@@ -174,6 +188,9 @@ export class Assignment1Stack extends cdk.Stack {
       new apig.LambdaIntegration(newMovieFn, { proxy: true })
     );
 
-
+    movieEndpoint.addMethod(
+      "DELETE",
+      new apig.LambdaIntegration(deleteMovieFn, { proxy: true })
+    );
   }
 }
