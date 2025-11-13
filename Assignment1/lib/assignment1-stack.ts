@@ -94,6 +94,22 @@ export class Assignment1Stack extends cdk.Stack {
       }
     );  
 
+    const getMovieActorByIdFn = new lambdanode.NodejsFunction(
+      this,
+      "GetActorByIdFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getMovieActorById.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: movieDatabaseTable.tableName,
+          REGION: cdk.Aws.REGION,
+        },
+      }
+    );  
+
     //POST
     const newMovieFn = new lambdanode.NodejsFunction(this, "AddMovieFn", {
       architecture: lambda.Architecture.ARM_64,
@@ -111,6 +127,8 @@ export class Assignment1Stack extends cdk.Stack {
     movieDatabaseTable.grantReadData(getMovieByIdFn)
     movieDatabaseTable.grantReadData(getAllMoviesFn)
     movieDatabaseTable.grantReadData(getMovieCastMembersFn)
+    movieDatabaseTable.grantReadData(getMovieActorByIdFn)
+
     movieDatabaseTable.grantReadWriteData(newMovieFn)
 
     //API
@@ -143,6 +161,12 @@ export class Assignment1Stack extends cdk.Stack {
     movieCastEndpoint.addMethod(
       "GET",
       new apig.LambdaIntegration(getMovieCastMembersFn, { proxy: true })
+    );
+
+    const movieActorEndpoint = movieCastEndpoint.addResource("{actorId}");
+    movieActorEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getMovieActorByIdFn, { proxy: true })
     );
 
     moviesEndpoint.addMethod(
