@@ -14,6 +14,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => { // 
         TableName: process.env.TABLE_NAME,
       })
     );
+    
     if (!commandOutput.Items) {
       return {
         statusCode: 404,

@@ -27,7 +27,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {    
         Key: { partition: `m${movieId}`, sort: "xxxx" },
       })
     );
+
     console.log("GetCommand response: ", commandOutput);
+    
     if (!commandOutput.Item) {
       return {
         statusCode: 404,

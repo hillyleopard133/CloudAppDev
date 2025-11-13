@@ -88,7 +88,7 @@ export class Assignment1Stack extends cdk.Stack {
         timeout: cdk.Duration.seconds(10),
         memorySize: 128,
         environment: {
-          CAST_TABLE_NAME: movieDatabaseTable.tableName,
+          TABLE_NAME: movieDatabaseTable.tableName,
           REGION: cdk.Aws.REGION,
         },
       }
@@ -137,6 +137,12 @@ export class Assignment1Stack extends cdk.Stack {
     movieEndpoint.addMethod(
       "GET",
       new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+    );
+
+    const movieCastEndpoint = movieEndpoint.addResource("actors");
+    movieCastEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getMovieCastMembersFn, { proxy: true })
     );
 
     moviesEndpoint.addMethod(
