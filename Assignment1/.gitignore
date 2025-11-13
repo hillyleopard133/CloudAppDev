@@ -3,6 +3,8 @@
 *.d.ts
 node_modules
 response.json
+*.schema.json
+
 
 # CDK asset staging directory
 .cdk.staging
