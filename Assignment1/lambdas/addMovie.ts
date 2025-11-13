@@ -51,6 +51,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         Item: item,
       })
     );
+
+    console.log(`POST ${item.partition} | ${item.sort} | ${item.title} | ${item.releaseDate} | ${item.overview}`);
+
     return {
       statusCode: 201,
       headers: {
@@ -58,6 +61,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
       },
       body: JSON.stringify({ message: "Movie added" }),
     };
+    
   } catch (error: any) {
     console.log(JSON.stringify(error));
     return {

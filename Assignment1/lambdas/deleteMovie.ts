@@ -1,6 +1,6 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, DeleteCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
 
@@ -14,6 +14,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     console.log("[EVENT]", JSON.stringify(event));
     const parameters  = event?.pathParameters;
     const movieId = parameters?.movieId ? parseInt(parameters.movieId) : undefined;
+
+    const getOutput = await ddbDocClient.send(
+      new GetCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: { partition: `m${movieId}`, sort: "xxxx" },
+      })
+    );
+
+    const item = getOutput.Item;
     
     const commandOutput = await ddbDocClient.send(
       new DeleteCommand({
@@ -21,6 +30,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         Key: { partition: `m${movieId}`, sort: "xxxx" },
       })
     );
+
+    if(item){
+      console.log( `DELETE ${item.partition} | ${item.sort} | ${item.title} | ${item.releaseDate} | ${item.overview}`);
+    }
 
     return {
       statusCode: 201,
