@@ -45,6 +45,7 @@ export class Assignment1Stack extends cdk.Stack {
       }),
     });
 
+    //GET
     const getMovieByIdFn = new lambdanode.NodejsFunction(
       this,
       "GetMovieByIdFn",
@@ -93,10 +94,26 @@ export class Assignment1Stack extends cdk.Stack {
       }
     );  
 
+    //POST
+    const newMovieFn = new lambdanode.NodejsFunction(this, "AddMovieFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/addMovie.ts`,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: movieDatabaseTable.tableName,
+        REGION: cdk.Aws.REGION,
+      },
+    });
+
+    //Permissions
     movieDatabaseTable.grantReadData(getMovieByIdFn)
     movieDatabaseTable.grantReadData(getAllMoviesFn)
     movieDatabaseTable.grantReadData(getMovieCastMembersFn)
+    movieDatabaseTable.grantReadWriteData(newMovieFn)
 
+    //API
     const api = new apig.RestApi(this, "RestAPI", {
       description: "demo api",
       deployOptions: {
@@ -122,32 +139,11 @@ export class Assignment1Stack extends cdk.Stack {
       new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
     );
 
-/*
-    const getMovieByIdURL = getMovieByIdFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
+    moviesEndpoint.addMethod(
+      "POST",
+      new apig.LambdaIntegration(newMovieFn, { proxy: true })
+    );
 
-    const getAllMoviesURL = getAllMoviesFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
 
-    const getMovieCastMembersURL = getMovieCastMembersFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    }); 
-    
-    new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
-    new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
-    new cdk.CfnOutput(this, "Get Movie Cast Url", { value: getMovieCastMembersURL.url });
-
-    */
   }
 }
