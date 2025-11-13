@@ -62,6 +62,9 @@ export class Assignment1Stack extends cdk.Stack {
       "confirm-signup.ts"
     );
 
+    this.addAuthRoute('signout', 'GET', 'SignoutFn', 'signout.ts');
+    this.addAuthRoute('signin', 'POST', 'SigninFn', 'signin.ts');
+
     //DATABASE  
     const movieDatabaseTable = new dynamodb.Table(this, "MovieDatabaseTable", {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
