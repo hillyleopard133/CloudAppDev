@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambdanode from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as apig from "aws-cdk-lib/aws-apigateway";
 
 import * as custom from "aws-cdk-lib/custom-resources";
 import { generateBatch } from "../shared/util";
@@ -13,13 +14,6 @@ export class Assignment1Stack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    //const moviesTable = new dynamodb.Table(this, "MoviesTable", {
-    //  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    //  partitionKey: { name: "id", type: dynamodb.AttributeType.NUMBER },
-    //  removalPolicy: cdk.RemovalPolicy.DESTROY,
-    //  tableName: "Movies",
-    //});
-
     const movieDatabaseTable = new dynamodb.Table(this, "MovieDatabaseTable", {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "partition", type: dynamodb.AttributeType.STRING },
@@ -27,11 +21,6 @@ export class Assignment1Stack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       tableName: "MovieDatabase",
     });
-
-    //movieCastsTable.addLocalSecondaryIndex({
-    //  indexName: "roleIx",
-    //  sortKey: { name: "roleName", type: dynamodb.AttributeType.STRING },
-    //});
 
     const allWrites = [
       generateBatch(movies),      
@@ -88,9 +77,52 @@ export class Assignment1Stack extends cdk.Stack {
       }
     );
 
+    const getMovieCastMembersFn = new lambdanode.NodejsFunction(
+      this,
+      "GetCastMemberFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getMovieCastMembers.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          CAST_TABLE_NAME: movieDatabaseTable.tableName,
+          REGION: cdk.Aws.REGION,
+        },
+      }
+    );  
+
     movieDatabaseTable.grantReadData(getMovieByIdFn)
     movieDatabaseTable.grantReadData(getAllMoviesFn)
+    movieDatabaseTable.grantReadData(getMovieCastMembersFn)
 
+    const api = new apig.RestApi(this, "RestAPI", {
+      description: "demo api",
+      deployOptions: {
+        stageName: "dev",
+      },
+      defaultCorsPreflightOptions: {
+        allowHeaders: ["Content-Type", "X-Amz-Date"],
+        allowMethods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
+        allowCredentials: true,
+        allowOrigins: ["*"],
+      },
+    });
+
+    const moviesEndpoint = api.root.addResource("movies");
+    moviesEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getAllMoviesFn, { proxy: true })
+    );
+
+    const movieEndpoint = moviesEndpoint.addResource("{movieId}");
+    movieEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+    );
+
+/*
     const getMovieByIdURL = getMovieByIdFn.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
@@ -104,56 +136,18 @@ export class Assignment1Stack extends cdk.Stack {
         allowedOrigins: ["*"],
       },
     });
-    
-    new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
-  new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
-    /*
-    const getAllMoviesURL = getAllMoviesFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
-
-    const getMovieCastMembersFn = new lambdanode.NodejsFunction(
-      this,
-      "GetCastMemberFn",
-      {
-        architecture: lambda.Architecture.ARM_64,
-        runtime: lambda.Runtime.NODEJS_16_X,
-        entry: `${__dirname}/../lambdas/getMovieCastMembers.ts`,
-        timeout: cdk.Duration.seconds(10),
-        memorySize: 128,
-        environment: {
-          CAST_TABLE_NAME: movieCastsTable.tableName,
-          REGION: "eu-west-1",
-        },
-      }
-    );
 
     const getMovieCastMembersURL = getMovieCastMembersFn.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedOrigins: ["*"],
       },
-    });   
-
-    movieDatabaseTable.grantReadData(getMovieByIdFn)
-    //moviesTable.grantReadData(getAllMoviesFn)
-    //movieCastsTable.grantReadData(getMovieCastMembersFn);
-
-    const getMovieByIdURL = getMovieByIdFn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-      },
-    });
-
+    }); 
+    
+    new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
     new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
     new cdk.CfnOutput(this, "Get Movie Cast Url", { value: getMovieCastMembersURL.url });
 
-    new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
     */
-
   }
 }
