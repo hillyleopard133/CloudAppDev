@@ -23,7 +23,7 @@ export class Assignment1Stack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    //
+  //Authorisation
   const userPool = new UserPool(this, "UserPool", {
       signInAliases: { username: true, email: true },
       selfSignUpEnabled: true,
@@ -235,6 +235,18 @@ export class Assignment1Stack extends cdk.Stack {
       },
     });
 
+    const ADMIN_API_KEY_VALUE = "1234BronaAdminKeyhduiaowgtidfsgabfsaddasd";
+
+    const adminApiKey = api.addApiKey("AdminApiKey", {
+      apiKeyName: "AdministratorKey",
+      value: ADMIN_API_KEY_VALUE,  
+    });
+
+    const adminUsagePlan = api.addUsagePlan("AdminUsagePlan", {
+      name: "AdminUsagePlan",
+      apiStages: [{ api, stage: api.deploymentStage }],
+    }).addApiKey(adminApiKey);
+
     const moviesEndpoint = api.root.addResource("movies");
     moviesEndpoint.addMethod(
       "GET",
@@ -290,6 +302,7 @@ export class Assignment1Stack extends cdk.Stack {
       "POST",
       new apig.LambdaIntegration(newMovieFn, { proxy: true }), 
       {
+        apiKeyRequired: true, 
         authorizer: requestAuthorizer,
         authorizationType: apig.AuthorizationType.CUSTOM,
       }
@@ -299,6 +312,7 @@ export class Assignment1Stack extends cdk.Stack {
       "DELETE",
       new apig.LambdaIntegration(deleteMovieFn, { proxy: true }),
       {
+        apiKeyRequired: true, 
         authorizer: requestAuthorizer,
         authorizationType: apig.AuthorizationType.CUSTOM,
       }
