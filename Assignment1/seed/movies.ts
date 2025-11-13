@@ -71,10 +71,22 @@ export const awards: Award[] = [
     year: 2013
   },
   {
+    awardId: 101,
+    body: "Academy",
+    category:"Best Supporting Actor",
+    year: 2017
+  },
+  {
     awardId: 2,
     body: "Golden Globe",
-    category:"Best Childrens movie",
+    category:"Best Childrens Movie",
     year: 2009
+  },
+  {
+    awardId: 2,
+    body: "Bafta",
+    category:"Best Movie",
+    year: 2021
   }
 ]
 

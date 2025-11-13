@@ -110,6 +110,22 @@ export class Assignment1Stack extends cdk.Stack {
       }
     );  
 
+    const getAwardFn = new lambdanode.NodejsFunction(
+      this,
+      "GetAwardFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getAward.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: movieDatabaseTable.tableName,
+          REGION: cdk.Aws.REGION,
+        },
+      }
+    ); 
+
     //POST
     const newMovieFn = new lambdanode.NodejsFunction(this, "AddMovieFn", {
       architecture: lambda.Architecture.ARM_64,
@@ -141,6 +157,7 @@ export class Assignment1Stack extends cdk.Stack {
     movieDatabaseTable.grantReadData(getAllMoviesFn)
     movieDatabaseTable.grantReadData(getMovieCastMembersFn)
     movieDatabaseTable.grantReadData(getMovieActorByIdFn)
+    movieDatabaseTable.grantReadData(getAwardFn)
 
     movieDatabaseTable.grantReadWriteData(newMovieFn)
     movieDatabaseTable.grantReadWriteData(deleteMovieFn)
@@ -182,6 +199,13 @@ export class Assignment1Stack extends cdk.Stack {
       "GET",
       new apig.LambdaIntegration(getMovieActorByIdFn, { proxy: true })
     );
+
+    const awardsEndpoint = api.root.addResource("awards");
+    awardsEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getAwardFn, { proxy: true })
+    );
+
 
     moviesEndpoint.addMethod(
       "POST",
