@@ -50,7 +50,84 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
       TableName: process.env.TABLE_NAME,
     };
 
-    if ("movieId" in queryParams && queryParams.movieId) {
+    let items: any[] = [];
+
+    if ("movieId" in queryParams && queryParams.movieId && "actorId" in queryParams && queryParams.actorId) {
+        const moviePartitionKey = `w${parseInt(queryParams.movieId)}`;
+        const actorPartitionKey = `w${parseInt(queryParams.actorId)}`;
+
+        let movieCommandInput: QueryCommandInput = {
+            TableName: process.env.TABLE_NAME,
+        };
+        let actorCommandInput: QueryCommandInput = {
+            TableName: process.env.TABLE_NAME,
+        };
+
+        if ("awardBody" in queryParams) {
+            movieCommandInput = {
+                ...movieCommandInput,
+                KeyConditionExpression: "#p = :pk and #s = :sk",
+                ExpressionAttributeNames: {
+                    "#p": "partition",
+                    "#s": "sort"
+                },
+                ExpressionAttributeValues: {
+                    ":pk": moviePartitionKey,
+                    ":sk": queryParams.awardBody
+                }
+            };
+        }else{
+            movieCommandInput = {
+                ...movieCommandInput,
+                KeyConditionExpression: "#p = :pk",
+                ExpressionAttributeNames: {
+                    "#p": "partition"
+                },
+                ExpressionAttributeValues: {
+                    ":pk": moviePartitionKey
+                }
+            };
+        }
+
+        if ("awardBody" in queryParams) {
+            actorCommandInput = {
+                ...actorCommandInput,
+                KeyConditionExpression: "#p = :pk and #s = :sk",
+                ExpressionAttributeNames: {
+                    "#p": "partition",
+                    "#s": "sort"
+                },
+                ExpressionAttributeValues: {
+                    ":pk": actorPartitionKey,
+                    ":sk": queryParams.awardBody
+                }
+            };
+        }else{
+            actorCommandInput = {
+                ...actorCommandInput,
+                KeyConditionExpression: "#p = :pk",
+                ExpressionAttributeNames: {
+                    "#p": "partition"
+                },
+                ExpressionAttributeValues: {
+                    ":pk": actorPartitionKey
+                }
+            };
+        }
+
+        const movieCommandOutput = await ddbDocClient.send(
+            new QueryCommand(movieCommandInput)
+        );
+        const actorCommandOutput = await ddbDocClient.send(
+            new QueryCommand(actorCommandInput)
+        );
+
+        items = [
+            ...(movieCommandOutput.Items ?? []),
+            ...(actorCommandOutput.Items ?? [])
+        ];
+
+    }else if ("movieId" in queryParams && queryParams.movieId) {
         const partitionKey = `w${parseInt(queryParams.movieId)}`;
         if ("awardBody" in queryParams) {
             commandInput = {
@@ -77,6 +154,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 }
             };
         }
+
+        const commandOutput = await ddbDocClient.send(
+            new QueryCommand(commandInput)
+        );
+        items = commandOutput.Items ?? [];
+
     } else if ("actorId" in queryParams && queryParams.actorId) {
         const partitionKey = `w${parseInt(queryParams.actorId)}`;
         if ("awardBody" in queryParams) {
@@ -104,6 +187,11 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 }
             };
         }
+
+        const commandOutput = await ddbDocClient.send(
+            new QueryCommand(commandInput)
+        );
+        items = commandOutput.Items ?? [];
     } 
     //else {
     //    commandInput = {
@@ -114,9 +202,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     //    };
     //}
     
-    const commandOutput = await ddbDocClient.send(
-      new QueryCommand(commandInput)
-    );
       
       return {
         statusCode: 200,
@@ -124,9 +209,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             "content-type": "application/json",
         },
         body: JSON.stringify({
-          data: commandOutput.Items,
- }),
- };
+          data: items,
+        }),
+    };
  } catch (error: any) {
       console.log(JSON.stringify(error));
       return {
