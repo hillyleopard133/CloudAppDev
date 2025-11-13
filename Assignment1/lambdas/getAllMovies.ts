@@ -2,24 +2,40 @@ import { Handler } from "aws-lambda";
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
-// Initialization
+
 const ddbDocClient = createDDbDocClient();
-// Handler
+
 export const handler: Handler = async (event, context) => {
   try {
-    console.log("Event: ", JSON.stringify(event));
+    // Print Event
+    console.log("Event: ", event);
 
     const commandOutput = await ddbDocClient.send(
       new ScanCommand({
-        TableName: process.env.TABLE_NAME
+        TableName: process.env.TABLE_NAME,
       })
     );
+    if (!commandOutput.Items) {
+      return {
+        statusCode: 404,
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ Message: "No movies" }),
+      };
+    }
 
     let items: any[] = [];
 
-    for(const movie of commandOutput.Items ?? []){
-        items.push(movie);
+    for(const entity of commandOutput.Items ?? []){
+      if(entity.partition && entity.partition.startsWith("m")){
+        items.push(entity);
+      }
     }
+
+    const body = {
+      data: items,
+    };
 
     // Return Response
     return {
@@ -27,7 +43,7 @@ export const handler: Handler = async (event, context) => {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({data: items}),
+      body: JSON.stringify(body),
     };
   } catch (error: any) {
     console.log(JSON.stringify(error));
@@ -54,4 +70,3 @@ function createDDbDocClient() {
   const translateConfig = { marshallOptions, unmarshallOptions };
   return DynamoDBDocumentClient.from(ddbClient, translateConfig);
 }
-

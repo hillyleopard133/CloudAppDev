@@ -56,8 +56,22 @@ export class Assignment1Stack extends cdk.Stack {
       }),
     });
 
-    /*
-
+    const getMovieByIdFn = new lambdanode.NodejsFunction(
+      this,
+      "GetMovieByIdFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getMovieById.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: movieDatabaseTable.tableName,
+          REGION: cdk.Aws.REGION,
+        },
+      }
+    );
+      
     const getAllMoviesFn = new lambdanode.NodejsFunction(
       this,
       "GetAllMoviesFn",
@@ -68,12 +82,32 @@ export class Assignment1Stack extends cdk.Stack {
         timeout: cdk.Duration.seconds(10),
         memorySize: 128,
         environment: {
-          TABLE_NAME: moviesTable.tableName,
+          TABLE_NAME: movieDatabaseTable.tableName,
           REGION: cdk.Aws.REGION,
         },
       }
     );
 
+    movieDatabaseTable.grantReadData(getMovieByIdFn)
+    movieDatabaseTable.grantReadData(getAllMoviesFn)
+
+    const getMovieByIdURL = getMovieByIdFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+      },
+    });
+
+    const getAllMoviesURL = getAllMoviesFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+      },
+    });
+    
+    new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
+  new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
+    /*
     const getAllMoviesURL = getAllMoviesFn.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
@@ -108,27 +142,6 @@ export class Assignment1Stack extends cdk.Stack {
     //moviesTable.grantReadData(getAllMoviesFn)
     //movieCastsTable.grantReadData(getMovieCastMembersFn);
 
-    new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
-    new cdk.CfnOutput(this, "Get Movie Cast Url", { value: getMovieCastMembersURL.url });
-
-    */
-
-    const getMovieByIdFn = new lambdanode.NodejsFunction(
-      this,
-      "GetMovieByIdFn",
-      {
-        architecture: lambda.Architecture.ARM_64,
-        runtime: lambda.Runtime.NODEJS_18_X,
-        entry: `${__dirname}/../lambdas/getMovieById.ts`,
-        timeout: cdk.Duration.seconds(10),
-        memorySize: 128,
-        environment: {
-          TABLE_NAME: movieDatabaseTable.tableName,
-          REGION: cdk.Aws.REGION,
-        },
-      }
-    );
-
     const getMovieByIdURL = getMovieByIdFn.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
@@ -136,7 +149,11 @@ export class Assignment1Stack extends cdk.Stack {
       },
     });
 
-    movieDatabaseTable.grantReadData(getMovieByIdFn)
+    new cdk.CfnOutput(this, "Get All Movies Function Url", { value: getAllMoviesURL.url });
+    new cdk.CfnOutput(this, "Get Movie Cast Url", { value: getMovieCastMembersURL.url });
+
     new cdk.CfnOutput(this, "Get Movie Function Url", { value: getMovieByIdURL.url });
+    */
+
   }
 }
