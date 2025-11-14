@@ -17,9 +17,9 @@ A screenshot of your seeded table from DynamoDB
 
 A screenshot from CloudWatch logs showing an example of User Activity logging
 
-![][db]
+![][log]
 
 
-[api]: ./images/API (2).png
+[api]: ./images/APIPostman.png
 [db]: ./images/Table.png
 [log]: ./images/Logs.png
