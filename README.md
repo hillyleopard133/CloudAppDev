@@ -7,7 +7,7 @@ __Demo:__ (https://youtu.be/NZPCfEER3tA)
 
 ### Screenshots.
 
-A screenshot of the App Web API from the management console
+API screenshot in postman
 
 ![][api]
 
@@ -20,6 +20,6 @@ A screenshot from CloudWatch logs showing an example of User Activity logging
 ![][db]
 
 
-[api]: ./images/API(2).png
+[api]: ./images/API (2).png
 [db]: ./images/Table.png
 [log]: ./images/Logs.png
