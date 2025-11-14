@@ -20,6 +20,6 @@ A screenshot from CloudWatch logs showing an example of User Activity logging
 ![][db]
 
 
-[api]: ./images/API.png
+[api]: ./images/API(2).png
 [db]: ./images/Table.png
 [log]: ./images/Logs.png
